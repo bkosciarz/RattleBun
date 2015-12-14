@@ -24,18 +24,14 @@ class game:
     def str_to_dict(self, in_str, out_dict):
         out_dict = ast.literal_eval(in_str)
     def send_request(self):
-        r = requests.post(get_url(), json=params, headers=headers)
-        print(r.content)
+        r = requests.post(self.get_url(), json=self.params, headers=self.headers)
+        print(r.content)#DEBUG info
         self.response = ast.literal_eval(r.content)
         return self.response
  
-params = {"login_name":"udfdkhjdjds","email":"optional@gmail.com","password":"123456","device_id":"987whatever"}
-r = requests.post(url+fragment, json=params_dict, headers=headers)
-print(r.content)
-ast.literal_eval(r.content)
-
 class account:
     def __init__(self, game_obj):
+        self.game_obj = game_obj
         self.login_name = ""
         self.password = ""
         self.auth_token = ""
@@ -44,7 +40,7 @@ class account:
     def login(self, login_name, password):   
         self.login_name = login_name
         self.password = password
-        get_auth()
+        self.get_auth()
 
     def get_auth(self):
         self.game_obj.url_fragment = "/resources/auth_token?d=android&v=2.7.2&r=false&dummy=1398.085"
@@ -102,6 +98,7 @@ def menu1():
                            3: Exit
 
                        ''')
+    pass
 
 def menu2():
     #have bool for logged in, and then stay at this menu until they logout
@@ -111,6 +108,12 @@ def menu2():
                            3: Change Password
                            4: Logout
                        ''')
-    
-    
+    pass 
+
+def tester():
+    my_game = game()
+    acc = account(my_game)
+    return acc
+
+
 
