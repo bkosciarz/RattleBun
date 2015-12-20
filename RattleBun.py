@@ -35,6 +35,8 @@ class account:
         self.login_name = ""
         self.password = ""
         self.auth_token = ""
+
+    def create_accout(self, login_name, password, email="")
     def logout(self):
                  pass
     def login(self, login_name, password):   
@@ -56,14 +58,21 @@ class account:
         #some kind of error mitigation?
 
     def change_password(self, new_password):
-                 pass
-                 #make sure self.auth is valid
+        self.get_auth()
+        self.game_obj.url_fragment = '/actions/player/change_password?d=android&v=2.7.2&r=false&dummy=1237.268'
+        self.game_obj.headers["X-HTTP-Method-Override"] = "PUT"
+        self.game_obj.headers["Authorization"] = "token " + self.auth_token
+
+        self.game_obj.params =  {"new_password":new_password}
+        self.game_obj.headers["Content-Length"] = len(str(self.game_obj.params))
+        self.game_obj.send_request()
+        #error checking?
 
     def complete_daily(self):
         #TODO: check if logged in and set auth_token
         self.game_obj.url_fragment = "/actions/collect_daily_objective?d=android&v=2.7.2&r=false&dummy=362.002"
         self.game_obj.headers["X-HTTP-Method-Override"] = "POST"
-        self.game_obj.headers["Authoriaztion"] = "token " + self.auth_token
+        self.game_obj.headers["Authorization"] = "token " + self.auth_token
         self.game_obj.params = {}
         #1,2,3 are valid daily ojectives
 
@@ -72,12 +81,26 @@ class account:
             self.game_obj.headers["Content-Length"] = len(str(self.game_obj.params))
             self.game_obj.send_request()
     def complete_objectives(self):
-        #1-197 are valid objectives
-                 pass
+        #1-193 are valid objectives
+
+        self.game_obj.url_fragment = "/actions/player/collect_objective?d=android&v=2.7.2&r=false&dummy=632.7889"
+        self.game_obj.headers["X-HTTP-Method-Override"] = "POST"
+        self.game_obj.headers["Authorization"] = "token " + self.auth_token
+        self.game_obj.params = {}
+
+        #maybe get current objectives and then not do every single one
+        for id in xrange(1,194):
+            self.game_obj.params["objective_id"] = id
+            self.game_obj.headers["Content-Length"] = len(str(self.game_obj.params))
+            self.game_obj.send_request()
+
     def current_objectives(self):
-                 pass
-        
-                 
+        self.game_obj.url_fragment = "/resources/current_objectives?d=android&v=2.7.2&r=false&dummy=643.3849"
+        self.game_obj.headers["X-HTTP-Method-Override"] = "GET"
+        self.game_obj.headers["Authorization"] = "token " + self.auth_token
+        self.game_obj.headers["Content-Length"] = 1
+        self.game_obj.params = {}
+      #HEREw 
 class account_cracker:
     def __init__(self):
         pass
@@ -87,10 +110,6 @@ class account_cracker:
 
     '''lets just use hydra...'''
     
-
-
-fragment = '/resources/player?d=android&v=2.7.2&r=false&dummy=206.5406'
-
 def menu1():
     choice = raw_input('''
                            1: Create an account
