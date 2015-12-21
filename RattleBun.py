@@ -1,7 +1,11 @@
 import requests
 import ast
+import datetime
+import hashlib
 
-class game:
+DEBUG = False
+
+class Game:
     def __init__(self):
         self.url = "http://api.battlerungame.com"
         self.url_fragment= ""
@@ -25,18 +29,33 @@ class game:
         out_dict = ast.literal_eval(in_str)
     def send_request(self):
         r = requests.post(self.get_url(), json=self.params, headers=self.headers)
-        print(r.content)#DEBUG info
-        self.response = ast.literal_eval(r.content)
-        return self.response
+        if DEBUG:
+            print(r.content)
+        try: 
+            self.response = ast.literal_eval(r.content)
+            return self.response
+        except ValueError:
+            return {}
  
-class account:
-    def __init__(self, game_obj):
-        self.game_obj = game_obj
+class Account:
+    def __init__(self, game = Game()):
+        self.game = game
         self.login_name = ""
         self.password = ""
         self.auth_token = ""
 
-    def create_accout(self, login_name, password, email="")
+    def create_account(self, login_name, password = "123456"):
+        self.game.url_fragment = "/resources/player?d=android&v=2.7.2&r=false&dummy=206.5406"
+        self.game.headers["X-HTTP-Method-Override"] = "POST"
+        
+        self.game.params = {"login_name":login_name, "password":password, "device_id":"test"}
+        self.game.headers["Content-Length"] = len(str(self.game.params))
+        self.game.send_request()
+
+        #if successful then"
+        self.login_name = login_name
+        self.password = password
+        self.get_auth()
     def logout(self):
                  pass
     def login(self, login_name, password):   
@@ -45,12 +64,12 @@ class account:
         self.get_auth()
 
     def get_auth(self):
-        self.game_obj.url_fragment = "/resources/auth_token?d=android&v=2.7.2&r=false&dummy=1398.085"
-        self.game_obj.headers["X-HTTP-Method-Override"] = "POST"
-        self.game_obj.params =  {"login_name":self.login_name,"password":self.password}
-        self.game_obj.headers["Content-Length"] = len(str(self.game_obj.params))
+        self.game.url_fragment = "/resources/auth_token?d=android&v=2.7.2&r=false&dummy=1398.085"
+        self.game.headers["X-HTTP-Method-Override"] = "POST"
+        self.game.params =  {"login_name":self.login_name,"password":self.password}
+        self.game.headers["Content-Length"] = len(str(self.game.params))
 
-        response = self.game_obj.send_request()
+        response = self.game.send_request()
         if "_error" in response.keys():
             print response["_error"]["message"]
         else:
@@ -59,57 +78,112 @@ class account:
 
     def change_password(self, new_password):
         self.get_auth()
-        self.game_obj.url_fragment = '/actions/player/change_password?d=android&v=2.7.2&r=false&dummy=1237.268'
-        self.game_obj.headers["X-HTTP-Method-Override"] = "PUT"
-        self.game_obj.headers["Authorization"] = "token " + self.auth_token
+        self.game.url_fragment = '/actions/player/change_password?d=android&v=2.7.2&r=false&dummy=1237.268'
+        self.game.headers["X-HTTP-Method-Override"] = "PUT"
+        self.game.headers["Authorization"] = "token " + self.auth_token
 
-        self.game_obj.params =  {"new_password":new_password}
-        self.game_obj.headers["Content-Length"] = len(str(self.game_obj.params))
-        self.game_obj.send_request()
+        self.game.params =  {"new_password":new_password}
+        self.game.headers["Content-Length"] = len(str(self.game.params))
+        self.game.send_request()
         #error checking?
 
     def complete_daily(self):
-        #TODO: check if logged in and set auth_token
-        self.game_obj.url_fragment = "/actions/collect_daily_objective?d=android&v=2.7.2&r=false&dummy=362.002"
-        self.game_obj.headers["X-HTTP-Method-Override"] = "POST"
-        self.game_obj.headers["Authorization"] = "token " + self.auth_token
-        self.game_obj.params = {}
+        self.game.url_fragment = "/actions/collect_daily_objective?d=android&v=2.7.2&r=false&dummy=362.002"
+        self.game.headers["X-HTTP-Method-Override"] = "POST"
+        self.game.headers["Authorization"] = "token " + self.auth_token
+        self.game.params = {}
         #1,2,3 are valid daily ojectives
 
         for id in xrange(1,4):
-            self.game_obj.params["objective_id"] = id
-            self.game_obj.headers["Content-Length"] = len(str(self.game_obj.params))
-            self.game_obj.send_request()
+            self.game.params["objective_id"] = id
+            self.game.headers["Content-Length"] = len(str(self.game.params))
+            self.game.send_request()
     def complete_objectives(self):
         #1-193 are valid objectives
 
-        self.game_obj.url_fragment = "/actions/player/collect_objective?d=android&v=2.7.2&r=false&dummy=632.7889"
-        self.game_obj.headers["X-HTTP-Method-Override"] = "POST"
-        self.game_obj.headers["Authorization"] = "token " + self.auth_token
-        self.game_obj.params = {}
+        self.game.url_fragment = "/actions/player/collect_objective?d=android&v=2.7.2&r=false&dummy=632.7889"
+        self.game.headers["X-HTTP-Method-Override"] = "POST"
+        self.game.headers["Authorization"] = "token " + self.auth_token
+        self.game.params = {}
 
         #maybe get current objectives and then not do every single one
-        for id in xrange(1,194):
-            self.game_obj.params["objective_id"] = id
-            self.game_obj.headers["Content-Length"] = len(str(self.game_obj.params))
-            self.game_obj.send_request()
+        num_objectives = 193
+        for id in xrange(1,num_objectives+1):
+            self.game.params["objective_id"] = id
+            self.game.headers["Content-Length"] = len(str(self.game.params))
+            self.game.send_request()
 
     def current_objectives(self):
-        self.game_obj.url_fragment = "/resources/current_objectives?d=android&v=2.7.2&r=false&dummy=643.3849"
-        self.game_obj.headers["X-HTTP-Method-Override"] = "GET"
-        self.game_obj.headers["Authorization"] = "token " + self.auth_token
-        self.game_obj.headers["Content-Length"] = 1
-        self.game_obj.params = {}
-      #HEREw 
-class account_cracker:
-    def __init__(self):
-        pass
-    def lookup_username(self):
-        pass
-        #lookup a players login name from their username
+        self.game.url_fragment = "/resources/current_objectives?d=android&v=2.7.2&r=false&dummy=643.3849"
+        self.game.headers["X-HTTP-Method-Override"] = "GET"
+        self.game.headers["Authorization"] = "token " + self.auth_token
+        self.game.headers["Content-Length"] = 1
+        self.game.params = {}
+    def buy_mount_slot(self):
+        #default payment type is coins, but can also be diamonds
+        self.game.url_fragment = "/actions/buy_mount_slot?d=android&v=2.7.2&r=false&dummy=1503.509"
+        self.game.headers["X-HTTP-Method-Override"] = "POST"
+        self.game.headers["Authorization"] = "token " + self.auth_token
+        
+        self.game.params = {"payment_type":"coins"}
+        self.game.headers["Content-Length"] = len(str(self.game.params))
+        self.game.send_request()
 
-    '''lets just use hydra...'''
-    
+    def buy_egg_pack(self):
+        self.game.url_fragment = "/actions/buy_egg_pack?d=android&v=2.7.2&r=false&dummy=1528.794"
+        self.game.headers["X-HTTP-Method-Override"] = "POST"
+        self.game.headers["Authorization"] = "token " + self.auth_token
+        self.game.params = {"egg_pack":"legendary0"}
+        self.game.headers["Content-Length"] = len(str(self.game.params))
+        self.game.send_request()
+
+    def hatch_egg(self):
+        self.game.url_fragment = "/actions/hatch_egg?d=android&v=2.7.2&r=false&dummy=1569.972"
+        self.game.headers["X-HTTP-Method-Override"] = "POST"
+        self.game.headers["Authorization"] = "token " + self.auth_token
+        self.game.params = {"egg_type":"legendary"}
+        self.game.headers["Content-Length"] = len(str(self.game.params))
+        response = self.game.send_request()
+        
+        #error checking 
+        return response["id"]
+
+    def collect_mount(self, mount_id):
+        self.game.url_fragment = "/actions/collect_mount?d=android&v=2.7.2&r=false&dummy=2387.565"
+        self.game.headers["X-HTTP-Method-Override"] = "POST"
+        self.game.headers["Authorization"] = "token " + self.auth_token
+        self.game.params = {"mount_id":mount_id}
+        self.game.headers["Content-Length"] = len(str(self.game.params))
+        response = self.game.send_request()
+
+        #error checking
+        return response["stats"]
+
+    def pet_boost_helper(self):
+    #complete all objectives and then buy/hatch pet 
+        self.complete_daily()
+        self.complete_objectives()
+        self.buy_mount_slot()
+        self.buy_egg_pack()
+        mount_id = self.hatch_egg()
+        return self.collect_mount(mount_id)
+        #order is speed, attack_time, damage, life
+
+class AccountBooster:
+    def __init__(self):
+        self.account = Account()
+ 
+    def pet_bruteforce(self, threshold=300):
+        login_name = hashlib.md5(str(datetime.datetime.now())).hexdigest()
+        self.account = Account()
+        self.account.create_account(login_name)
+        mount_stats =  self.account.pet_boost_helper()
+        if sum(mount_stats[:-1]) < threshold:
+            self.pet_bruteforce(threshold)
+            print(self.account.login_name + ":" + str(mount_stats))
+        else:
+            print(self.account.login_name + ":" + self.account.password + ":" + str(mount_stats) + "YAEH")
+            self.pet_bruteforce(threshold)
 def menu1():
     choice = raw_input('''
                            1: Create an account
@@ -117,7 +191,7 @@ def menu1():
                            3: Exit
 
                        ''')
-    pass
+    return
 
 def menu2():
     #have bool for logged in, and then stay at this menu until they logout
@@ -127,11 +201,11 @@ def menu2():
                            3: Change Password
                            4: Logout
                        ''')
-    pass 
+    return
 
 def tester():
-    my_game = game()
-    acc = account(my_game)
+    game = Game()
+    account = Account(Game)
     return acc
 
 
